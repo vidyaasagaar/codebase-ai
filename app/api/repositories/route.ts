@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 // Private repositories are only listed for the GitHub connection that indexed them.
 export async function GET(req: Request) {
+  if (!capabilities().indexing) return NextResponse.json([]); // hosted preview: nothing is ever indexed
   const auth = await getAuth(req);
   const repos = await query(
     `SELECT id, name, url, branch, commit_sha, status, stats, metadata, provider, private, indexed_at, created_at

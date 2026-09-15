@@ -15,6 +15,17 @@
     Cache-Control = "public, max-age=3600"
     X-Robots-Tag = "all"
 
+# Well-known aliases for the product summaries (rewrites with status 200, not redirects).
+[[redirects]]
+  from = "/.well-known/llms.txt"
+  to = "/llms.txt"
+  status = 200
+
+[[redirects]]
+  from = "/.well-known/llms-full.txt"
+  to = "/llms-full.txt"
+  status = 200
+
 [[headers]]
   for = "/.well-known/*"
   [headers.values]

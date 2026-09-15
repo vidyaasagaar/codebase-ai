@@ -53,3 +53,16 @@ test("read endpoints keep responding normally", async () => {
   assert.equal(missing.status, 404);
   assert.equal(((await missing.json()) as { error: string }).error, "Repository not found");
 });
+
+test("account features stay off without touching storage", async () => {
+  const token = await import("../app/api/extension/token/route");
+  const exchanged = await token.POST(request("/api/extension/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: "code", state: "state" }),
+  }));
+  assert.equal(exchanged.status, 503);
+
+  const session = await import("../lib/auth/session");
+  assert.equal(await session.getAuth(request("/", { headers: { authorization: "Bearer anything" } })), null);
+});

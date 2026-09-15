@@ -1,5 +1,6 @@
 import type { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { capabilities } from "@/lib/runtime";
 import { encrypt, decrypt, randomToken, sha256 } from "./crypto";
 import { refreshAccessToken, type GithubUser, type TokenSet } from "./github-oauth";
 
@@ -34,6 +35,8 @@ export function readCookie(req: Request, name: string) {
 }
 
 export async function getAuth(req: Request): Promise<Auth | null> {
+  // Hosted previews have no persistent storage, so there are no accounts or sessions to look up.
+  if (!capabilities().indexing) return null;
   const token = req.headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1] ?? readCookie(req, SESSION_COOKIE);
   if (!token) return null;
   const [row] = await query<{ token_hash: string; kind: SessionKind; connection_id: string; login: string; name: string | null; avatar_url: string | null }>(

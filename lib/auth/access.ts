@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { checkRepoAccess } from "@/lib/repository/github";
 import { getAuth, getConnectionToken, type Auth } from "./session";
+import { capabilities } from "@/lib/runtime";
 
 // Access control for indexed repositories.
 // Public, Git-URL and local-workspace repositories keep working without sign-in (unchanged behavior).
@@ -33,6 +34,10 @@ export interface RepoAccessRow {
 type Result = { ok: true; repo: RepoAccessRow; auth: Auth | null } | { ok: false; response: NextResponse };
 
 export async function authorizeRepo(req: Request, repoId: string): Promise<Result> {
+  // Hosted previews never index repositories; answer without starting the database.
+  if (!capabilities().indexing) {
+    return { ok: false, response: NextResponse.json({ error: "Repository not found" }, { status: 404 }) };
+  }
   const [repo] = await query<RepoAccessRow>(
     "SELECT id, private, owner_connection_id, provider, metadata FROM repositories WHERE id = $1",
     [repoId],
