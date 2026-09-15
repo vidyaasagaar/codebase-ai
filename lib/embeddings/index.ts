@@ -30,7 +30,9 @@ function getEmbedder() {
 export async function embedDocuments(texts: string[], onProgress?: (done: number) => void): Promise<number[][]> {
   const fe = await getEmbedder();
   const out: number[][] = [];
-  const BATCH = 32;
+  // Small batches keep peak memory low: attention buffers grow with batch size × tokens², and the ONNX runtime
+  // keeps its peak allocation, which matters on small servers.
+  const BATCH = 8;
   for (let i = 0; i < texts.length; i += BATCH) {
     const t = await fe(texts.slice(i, i + BATCH), { pooling: "cls", normalize: true });
     out.push(...(t.tolist() as number[][]));

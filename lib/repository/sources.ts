@@ -38,7 +38,8 @@ export function run(cmd: string, args: string[], cwd?: string, env?: Record<stri
 async function shallowClone(url: string, targetDir: string, branch: string | null, env?: Record<string, string>) {
   fs.rmSync(targetDir, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(targetDir), { recursive: true });
-  await run("git", ["clone", "--depth", "1", ...(branch ? ["--branch", branch] : []), url, targetDir], undefined, env);
+  // core.longpaths: deep repositories otherwise fail to check out on Windows (260-character path limit).
+  await run("git", ["-c", "core.longpaths=true", "clone", "--depth", "1", ...(branch ? ["--branch", branch] : []), url, targetDir], undefined, env);
 }
 
 // Read-only GitHub credentials for a single git process, passed through git's environment config (git >= 2.31):
