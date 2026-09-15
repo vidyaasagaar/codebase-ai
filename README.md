@@ -1,198 +1,235 @@
-# Codebase AI — Codebase RAG Assistant
+# Codebase AI
 
-Paste a Git repository URL. Codebase AI clones it, parses it into functions, classes, routes and dependencies with Tree-sitter, indexes it in PostgreSQL + pgvector, and answers natural-language questions with exact, clickable source citations.
+**AI code intelligence for any Git repository.** Codebase AI parses a repository into functions, classes, API routes and a dependency graph. It indexes that locally with embeddings and PostgreSQL + pgvector, then answers architecture, flow, dependency and change-impact questions with **exact file and line citations**. You can use it in the web app or inside **VS Code**.
+
+**[Website](https://codebaseee.netlify.app)** · **[VS Code extension](#vs-code-extension)** · **[Project analysis](docs/PROJECT_ANALYSIS.md)** · **[Quick start](#quick-start)**
+
+---
+
+## What you can ask
+
+> *Where is authentication handled?*
+> *How does a user registration request flow through the system?*
+> *What would be affected if I changed `createUser`?*
+> *Show me all API routes.* · *Explain the architecture.* · *What should I understand first as a new developer?*
+
+Every answer cites numbered sources (`[S1]`, `[S2]`, …) that open the code at the exact lines. Answers say plainly when the evidence is insufficient, and any file paths that don't exist in the repository are flagged automatically.
+
+## Highlights
+
+- **Structure-aware indexing.** Tree-sitter parsing for TypeScript, TSX, JavaScript, Python, Java and Go. API routes are detected automatically across Express, Koa, Fastify, Hono, Next.js, FastAPI, Flask, Spring, NestJS, net/http, Gin, Echo, Chi and Fiber.
+- **Hybrid retrieval.**
+  - Search: pgvector semantic search, PostgreSQL full-text search over split identifiers, and exact symbol matching, fused with Reciprocal Rank Fusion.
+  - Context: results are expanded through the call graph.
+  - Query understanding: questions are classified by type to pick the right context.
+- **Grounded answers.** Answers stream from any OpenAI-compatible LLM (OpenRouter, OpenAI, Gemini, Groq, local servers). Only the retrieved snippets are sent to the model.
+- **Architecture and impact.**
+  - An interactive module and file graph.
+  - A dependency explorer.
+  - HIGH / MEDIUM / LOW change-impact analysis with reasons.
+- **Any repository source.**
+  - Local folders, with no account needed.
+  - Public Git URLs.
+  - Private and organization GitHub repositories through a read-only GitHub App.
+- **VS Code extension.** Ask questions, analyze your local workspace (including uncommitted changes), and jump from citations straight to the code.
+
+---
 
 ## Quick start
 
+Requirements: **Node.js 20+** and **git**.
+
 ```bash
+git clone https://github.com/vidyaasagaar/codebase-ai.git
+cd codebase-ai
 npm install
-cp .env.example .env.local   # then fill in LLM_API_KEY
+cp .env.example .env.local   # add your LLM endpoint + API key
 npm run dev
 ```
 
-Open http://localhost:3000, paste a repository (e.g. `https://github.com/gothinkster/node-express-realworld-example-app`) and click **Analyze**.
+1. Open **http://localhost:3000**.
+2. Paste a repository URL or an absolute local folder path, or pick a repository from the built-in GitHub search, then click **Analyze**.
+3. Watch the live analysis. When it finishes, the Overview, Ask AI, Architecture, Files, API Routes and Dependencies & Impact pages all open.
 
-Requirements: Node 20+, `git` on PATH. No database or Docker needed. The embedding model (~35 MB) downloads on first index into `.data/models`.
+The embedding model (~35 MB) downloads once into `.data/models` on first use. No database server or Docker is required; the database is embedded PostgreSQL (PGlite) stored in `.data/`.
 
-### LLM configuration (`.env.local`)
+### Minimal `.env.local`
 
-Any OpenAI-compatible Chat Completions endpoint works. The default setup is OpenRouter:
-
-```
+```bash
 LLM_BASE_URL=https://openrouter.ai/api/v1
 LLM_API_KEY=sk-or-...
-LLM_MODEL=openai/gpt-5.6-luna                       # fast, grounded, ~$0.003 per question
-LLM_FALLBACK_MODELS=cohere/north-mini-code:free     # OpenRouter falls back automatically (errors, rate limits, credits)
-LLM_MAX_TOKENS=2000                                 # cap on answer length (keeps credit reservations small)
-MAX_CONTEXT_CHARS=24000                             # retrieved code sent per question
+LLM_MODEL=openai/gpt-5.6-luna
+LLM_FALLBACK_MODELS=cohere/north-mini-code:free
 ```
 
-| Provider | `LLM_BASE_URL` | `LLM_MODEL` example |
-|---|---|---|
-| OpenRouter | `https://openrouter.ai/api/v1` | `openai/gpt-5.6-luna`, `google/gemini-3.8-flash`, `anthropic/claude-sonnet-5` |
-| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.5-flash` |
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+Without an LLM key, indexing, search, graphs and impact analysis still work, and chat shows the retrieved evidence instead of a written answer.
 
-`LLM_FALLBACK_MODELS` is OpenRouter-specific; leave it empty for other providers. Without a key, indexing, search, the graph, and impact analysis all still work, and chat returns the retrieved evidence instead of a written answer.
+---
 
-Free OpenRouter models may be served by providers that log prompts. For sensitive code, use a paid model with a no-logging provider policy.
+## VS Code extension
 
-### GitHub integration
+The extension brings Codebase AI into your editor. It connects to your Codebase AI server and reuses the same index, retrieval and grounded answers.
 
-- The landing page searches real repositories through the GitHub search API. It defaults to popular RealWorld apps, with a language filter matching the supported parsers.
-- Submitting a GitHub URL, including `/tree/<branch>` links, first checks the GitHub API that the repository exists and is accessible. It also rejects repositories over 250 MB and uses the default branch unless you pick one.
-- Repository metadata (description, stars, topics) is shown on the overview.
-- Unauthenticated limits are 60 requests/hour and 10 searches/minute. Add `GITHUB_TOKEN` (no scopes needed) to `.env.local` for more.
+### Install
 
-### GitHub sign-in (private and organization repositories)
+```bash
+cd extension
+npm install
+npm run compile
+```
 
-Signing in is optional. Public repositories, Git URLs and local folders keep working without it.
+- **Run it from source:** open the `extension/` folder in VS Code and press **F5** (*Run Codebase AI Extension*).
+- **Install it permanently:** `npx @vscode/vsce package`, then *Extensions → … → Install from VSIX*.
+- **Point it at a server:** set `codebaseAI.serverUrl` (default `http://localhost:3000`) if your server runs elsewhere.
 
-Codebase AI uses a **GitHub App** rather than a classic OAuth App. Classic OAuth Apps can only read private repositories through the `repo` scope, which also grants push access. A GitHub App can be limited to read-only permissions.
+### Commands
 
-1. Go to GitHub → **Settings → Developer settings → GitHub Apps → New GitHub App**.
-   - **Homepage URL:** `http://localhost:3000`
-   - **Callback URL:** `http://localhost:3000/api/auth/github/callback`
+| Command | What it does |
+|---|---|
+| **Codebase AI: Ask About This Codebase** | Chat panel with streaming answers. Citations open the file at the cited lines in your editor. |
+| **Codebase AI: Analyze Repository** | Indexes the open folder locally, including uncommitted changes, with no account needed. If the folder has a GitHub remote you can choose the GitHub copy instead. |
+| **Codebase AI: Select Repository** | Links this window to any Codebase AI project, including your private GitHub projects when signed in. |
+| **Codebase AI: Re-index Repository** | Rebuilds the linked project's index. |
+| **Codebase AI: Sign In / Sign Out** | Browser-based sign-in to your Codebase AI account. |
+| **Codebase AI: Connect GitHub** | Opens GitHub sign-in in the web app. |
+| **Codebase AI: Open Dashboard** | Opens the linked project in the web app. |
+
+### How it fits together
+
+- **Works offline from GitHub.** Local folders, GitLab, Bitbucket, self-hosted Git and uncommitted projects are analyzed straight from disk.
+- **Recognizes your workspace.** The extension reads the folder's `origin` remote (read-only; it never changes your git config). Remotes like `git@github.com:owner/repo.git` or `https://github.com/owner/repo.git` link to the matching project automatically.
+- **Status bar.** Shows the linked project, its visibility and indexing status. Click it to ask a question.
+- **Secure sign-in.**
+  - *Sign In* opens the browser, where you continue with GitHub and click **Authorize VS Code**.
+  - VS Code receives a one-time code through its own URI handler, bound to a state value the extension generated.
+  - It exchanges that code for a Codebase AI session token, stored in VS Code **SecretStorage**.
+  - Your GitHub token never leaves the server.
+- **Web → VS Code.** **Open in VS Code** on a project's overview page opens the project in your editor. If it isn't open locally, the extension offers to clone it (with your own Git credentials), open a folder, or ask questions without a local copy.
+- **VS Code → Web.** *Open Dashboard* opens the linked project in the web app.
+
+---
+
+## Private and organization repositories (GitHub)
+
+Signing in is optional. It unlocks private and organization repositories through a **GitHub App with read-only permissions**, so Codebase AI can never push code, delete repositories or change settings.
+
+1. **Create the app.** GitHub → **Settings → Developer settings → GitHub Apps → New GitHub App**:
+   - **Homepage URL:** your Codebase AI URL (e.g. `http://localhost:3000`).
+   - **Callback URL:** `<your URL>/api/auth/github/callback`.
    - **Webhook:** uncheck *Active*.
-   - **Repository permissions:** *Contents: Read-only* (*Metadata: Read-only* is added automatically). Grant nothing else.
+   - **Repository permissions:** **Contents: Read-only** (Metadata: Read-only is added automatically).
    - **Where can this GitHub App be installed:** *Any account* if you need organization repositories.
-2. Generate a **client secret**, then add these to `.env.local`:
-   ```
+2. **Configure the server.** Generate a client secret and add to `.env.local`:
+   ```bash
    GITHUB_CLIENT_ID=Iv1....
    GITHUB_CLIENT_SECRET=...
    GITHUB_CALLBACK_URL=http://localhost:3000/api/auth/github/callback
-   GITHUB_APP_SLUG=<the app's URL name>
+   GITHUB_APP_SLUG=your-app-slug
    ```
-3. **Install** the app on your account or organization and pick repositories: `https://github.com/apps/<slug>/installations/new`. Organization owners may need to approve it.
-4. Restart the server and click **Continue with GitHub**. **Your repositories** lists everything GitHub authorizes for you: private and public, personal and organization. Click **Analyze** to index a repository with the existing pipeline.
+3. **Install the app** on your account or organization and choose repositories: `https://github.com/apps/<slug>/installations/new`.
+4. **Sign in.** Restart, then click **Continue with GitHub**. **Your repositories** lists every repository GitHub authorizes for you, marked Private/Public and Organization/Personal. Click **Analyze** on one.
 
-How access works:
-- GitHub remains the source of truth for access. Opening an indexed private repository re-checks your access with GitHub (cached for 5 minutes). Revoked access, expired authorization and missing sign-in each show a clear message.
-- Private repositories are cloned with the user's token, passed to git as a one-time HTTP header through environment config. The token is never in the clone URL, `.git/config`, the process arguments or a credential helper.
-- **Re-index** on the overview fetches the latest commit and rebuilds the index.
-- **Disconnect GitHub** in the account menu revokes the token and removes the connection and all sessions.
+How access is enforced:
+- **GitHub decides who can read an index.** Opening an indexed private repository re-checks access with GitHub, so collaborators work and revoked access is enforced.
+- **Tokens stay on the server.** GitHub tokens are encrypted at rest (AES-256-GCM) and never sent to the browser or the extension.
+- **Clones never store the token.** Private repositories are cloned with a one-time credential passed through git's environment config; it never appears in URLs, `.git/config` or process arguments.
+- **Disconnect cleans up.** *Disconnect GitHub* revokes the token and removes the connection and every session.
+
+---
+
+## Configuration
+
+| Variable | Purpose |
+|---|---|
+| `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | Any OpenAI-compatible Chat Completions endpoint |
+| `LLM_FALLBACK_MODELS` | OpenRouter fallback models (errors, rate limits, credits) |
+| `LLM_MAX_TOKENS`, `MAX_CONTEXT_CHARS` | Answer length cap and retrieved-context budget |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_CALLBACK_URL`, `GITHUB_APP_SLUG` | GitHub App sign-in for private and organization repositories |
+| `GITHUB_TOKEN` | Optional; raises limits for public GitHub API calls |
+| `CODEBASE_AI_SECRET` | Optional encryption key for stored tokens (otherwise generated into `.data/secret.key`) |
+| `CODEBASE_AI_DATA_DIR` | Optional data directory (database, clones, model cache) |
+| `CODEBASE_AI_MODE` | `full` or `hosted`; auto-detected by default |
+| `NEXT_PUBLIC_SITE_URL` | Public URL used for canonical links and the sitemap |
+
+---
+
+## Deployment
+
+Indexing needs a **long-running Node.js process with Git and persistent disk**: your machine, a VM, or any host that runs `npm run build && npm start` with a persistent volume.
+
+Serverless platforms such as Netlify and Vercel freeze functions after every response and reset their storage. Codebase AI detects this and runs as a **hosted preview**: the site, product pages and GitHub search work, while analysis shows a clear message pointing to local or self-hosted use. The website at [codebaseee.netlify.app](https://codebaseee.netlify.app) runs in this preview mode.
+
+---
 
 ## How it works
 
 ```
-Repository URL
-  → git clone --depth 1
-  → file discovery (skips vendor/build/lockfiles/minified)
-  → Tree-sitter AST parsing (TS, TSX, JS, Python, Java, Go)
-      functions · methods · classes · interfaces · React components · data models
-      API routes (Express/Fastify/Koa, Next.js route handlers, FastAPI/Flask, Spring, NestJS, Go routers)
-      imports · call sites
-  → dependency graph (import resolution + call resolution scoped by same file → imported files → unique global)
-  → local embeddings (bge-small-en-v1.5, 384d) + weighted full-text vectors on split identifiers
-  → PostgreSQL + pgvector (PGlite, stored in .data/pg)
+Repository (local folder · Git URL · GitHub)
+  → discovery (skips vendor, build output, lockfiles)
+  → Tree-sitter parsing → functions, classes, components, models, routes, imports, calls
+  → dependency graph (import + call resolution)
+  → local embeddings (bge-small-en-v1.5) + weighted full-text vectors
+  → PostgreSQL + pgvector
+
+Question
+  → query classification → hybrid retrieval (vector + full-text + symbol, RRF)
+  → metadata filtering → call-graph expansion → numbered evidence
+  → LLM (streamed, citation-constrained) → grounding verification
 ```
 
-Other files (docs, config, unsupported languages) are indexed as small text chunks, so they remain searchable.
+The full breakdown lives in **[docs/PROJECT_ANALYSIS.md](docs/PROJECT_ANALYSIS.md)**: architecture diagrams, the ingestion pipeline with measured results on real repositories, retrieval parameters, data model, API reference, security review, test results, limitations and roadmap.
 
-**Question answering**
+## Project structure
 
-1. **Query understanding.** The question is classified as location, flow, dependency, impact, implementation, debugging, architecture, or routes.
-2. **Hybrid retrieval.** Results from pgvector cosine search, Postgres full-text search, and exact symbol-name matching are combined with Reciprocal Rank Fusion. Metadata filters then down-weight docs for code questions and down-weight tests and generated code.
-3. **Dependency expansion.** The callers and callees of the top hits are added to the context.
-4. **Question-specific context.**
-   - Impact and dependency questions resolve the target symbol and traverse the call graph (HIGH, MEDIUM, and LOW by hop distance).
-   - Architecture questions include module statistics.
-   - Routes questions include the route index.
-5. **Grounded generation.** Evidence is numbered `[S1]…[Sn]` with file paths and line numbers. The model must cite sources, admit missing evidence, and separate what the code shows from what it infers.
-6. **Hallucination guard.** After the answer streams, file paths that don't exist in the repository and citations to non-existent sources are flagged in the UI.
+```
+app/            Next.js pages (landing, /repo/[id]/{chat,architecture,files,routes,impact}, /extension/auth) and API routes
+components/     repository shell, Monaco code viewer, GitHub account controls
+lib/db          PGlite + pgvector schema (additive migrations)
+lib/repository  repository sources (local / git / GitHub), GitHub API client, discovery, ingestion
+lib/parser      Tree-sitter entity extraction
+lib/graph       import and call resolution
+lib/embeddings  local embedding model
+lib/retrieval   query classification, hybrid search, dependencies, impact, architecture graphs
+lib/ai          OpenAI-compatible streaming client, grounded answer pipeline
+lib/auth        GitHub sign-in, encryption, sessions, repository access control
+extension/      VS Code extension
+tests/          unit and integration tests
+docs/           project analysis
+```
 
-## Features
+## Security and privacy
 
-- **Overview:** languages, frameworks, entry points, largest and most-connected modules, complex files, tailored starter questions, and repository deletion.
-- **Ask AI:** streaming answers with clickable `[S#]` citations and `path:lines` references that open the code viewer at the exact lines. Also shows the evidence strength and query type.
-- **Architecture:** interactive module graph (zoom, pan, search, click to highlight dependencies and dependents). Double-click a module to drill into its files.
-- **Files:** file tree, Monaco viewer with line highlighting, symbol outline, go-to-symbol, and a dependency explorer (depends on, used by, importers).
-- **API Routes:** every detected endpoint with its source.
-- **Dependencies & Impact:** change-impact analysis with reasons, plus "Explain impact with AI".
+- **Local processing.** Parsing, embeddings and the vector index run where Codebase AI runs. Only retrieved snippets reach the LLM provider.
+- **Read-only GitHub access.** Private-repository indexes are listed only for their owner and re-verified with GitHub on access.
+- **Tokens and sessions.** Tokens are encrypted at rest; browser and extension sessions are random tokens stored only as SHA-256 hashes; nothing sensitive is logged.
+- **Deletion.** Deleting a project removes its clone, entities, embeddings and dependency graph.
+- **Shared networks.** `next dev` listens on your network address; run `next dev -H 127.0.0.1` so only your machine can reach the API.
 
-## VS Code extension
-
-The extension lives in [`extension/`](extension). It talks to your Codebase AI server (`codebaseAI.serverUrl`, default `http://localhost:3000`) and reuses the same index, retrieval and answers.
+## Testing
 
 ```bash
-cd extension && npm install && npm run compile
+npm test          # unit + integration tests (node:test via tsx)
+npx tsc --noEmit  # type check
+npm run lint
+npm run build
 ```
 
-Open the `extension` folder in VS Code and press **F5** (*Run Codebase AI Extension*). To install it permanently, package it with `npx @vscode/vsce package`.
+The tests cover:
+- URL and remote parsing.
+- Token encryption and tamper detection.
+- Redirect guards.
+- Git credential isolation.
+- Sessions, and GitHub-decided access to private repositories: collaborator, revoked and expired token.
+- The VS Code sign-in handoff: single-use codes, state binding, token isolation.
+- Hosted-preview behavior.
 
-| Command | What it does |
-|---|---|
-| Codebase AI: Ask About This Codebase | Opens the chat panel. Answers stream in, and citations open the file at the cited lines in your editor. |
-| Codebase AI: Analyze Repository | Indexes the open folder locally (includes uncommitted changes, no account needed). If the folder has a GitHub remote, you can choose the GitHub copy instead. |
-| Codebase AI: Select Repository | Links this window to any Codebase AI project, including your private GitHub projects when signed in. |
-| Codebase AI: Re-index Repository | Rebuilds the linked project's index. |
-| Codebase AI: Sign In / Sign Out | Signs in through the browser (see below). |
-| Codebase AI: Connect GitHub | Opens GitHub sign-in in the web app. |
-| Codebase AI: Open Dashboard | Opens the linked project in the web app. |
+The extension also ships a smoke test that runs inside a real VS Code extension host.
 
-**Local workspaces work without signing in.** GitLab, Bitbucket, self-hosted Git and uncommitted projects are analyzed from the folder on disk.
+## Roadmap
 
-How the extension connects:
-- **Recognizing projects:** the extension reads the folder's `origin` remote (read-only) and normalizes `git@github.com:owner/repo.git` and `https://github.com/owner/repo.git`. It links the workspace to a matching local-path or GitHub project automatically.
-- **Sign-in:** *Sign In* opens `/extension/auth` in the browser, where you continue with GitHub if needed and click **Authorize VS Code**. The server issues a one-time, 5-minute code, delivered only to `vscode://codebase-ai.codebase-ai/auth` and bound to a random state the extension generated. The extension exchanges it for a Codebase AI session token and stores it in VS Code SecretStorage. The GitHub token never leaves the server.
-- **Web → VS Code:** **Open in VS Code** on the overview opens `vscode://codebase-ai.codebase-ai/project?id=<id>`. The extension links the matching open folder. Otherwise it offers to clone (using VS Code's Git and your own credentials), open a folder, or ask questions without a local copy.
-- **VS Code → Web:** *Open Dashboard* opens the linked project in the web app.
-
-## API
-
-```
-GET    /api/auth/github/login?returnTo=           start GitHub sign-in (CSRF state cookie)
-GET    /api/auth/github/callback                  GitHub redirect target → httpOnly session cookie
-GET    /api/auth/session                          current user (cookie or Bearer), never tokens
-POST   /api/auth/logout                           { disconnect? } end session / revoke GitHub connection
-GET    /api/github/repositories                   repositories the signed-in user may access + index status
-POST   /api/extension/authorize                   { state, redirectUri } one-time code for the VS Code extension
-POST   /api/extension/token                       { code, state } → extension session token
-POST   /api/repositories/:id/index                manual re-index
-GET    /api/github/search?q=&language=           real repositories from the GitHub search API
-POST   /api/repositories                         { url, branch? } | { github: "owner/repo" } → { id }   (GitHub repos validated via GitHub API; indexing runs in background)
-GET    /api/repositories                         list
-GET    /api/repositories/:id                     status, progress, stats, suggested questions
-DELETE /api/repositories/:id                     removes clone, entities, embeddings, graph
-GET    /api/repositories/:id/files[?path=]       file list | file content + symbols
-GET    /api/repositories/:id/entities[?q=|?routes=1]
-GET    /api/repositories/:id/entities/:entityId  entity + dependencies
-POST   /api/repositories/:id/query               { question, entityId?, history? } → NDJSON stream
-GET    /api/repositories/:id/architecture[?module=]
-POST   /api/repositories/:id/impact-analysis     { entityId }
-```
-
-## Project layout
-
-```
-app/                 pages (landing, /repo/[id]/{chat,architecture,files,routes,impact}) and API routes
-components/          repo shell + ingestion progress, Monaco code viewer
-lib/db               PGlite + pgvector schema and query helper
-lib/repository       GitHub API client, repository sources (local / git / GitHub), discovery, ingestion pipeline
-lib/auth             GitHub sign-in, encrypted connections, sessions, repository access control
-extension/           VS Code extension (commands, URI handler, Ask panel)
-tests/               npm test — parsing, security guards, auth + access + VS Code handoff integration
-lib/parser           Tree-sitter entity extraction per language
-lib/graph            import and call resolution
-lib/embeddings       local embedding model
-lib/retrieval        query classification, hybrid search, dependencies, impact, architecture graph
-lib/ai               OpenAI-compatible LLM client, grounded answer pipeline
-```
-
-## Data & security
-
-- Repositories are cloned into `.data/repos/<id>` and indexed into `.data/pg`. They persist until deleted from the UI, and deleting removes all related data (cascading deletes plus clone removal).
-- Embeddings are computed locally. Only the snippets retrieved for a question go to the configured LLM.
-- Source code is never written to logs.
-- The file API only serves files that were indexed, and resolved paths must stay inside the clone.
-- **Tokens and sessions:**
-  - GitHub tokens are encrypted at rest with AES-256-GCM, using `CODEBASE_AI_SECRET` or a generated `.data/secret.key`.
-  - They are never sent to the browser or the VS Code extension, and never logged.
-  - Browser and extension sessions are random tokens stored only as SHA-256 hashes.
-- **GitHub permissions:** repository access is read-only (Contents and Metadata). Codebase AI cannot push, delete or change settings.
-- **Private repository indexes:**
-  - They're listed only for the GitHub connection that indexed them.
-  - Every read re-checks access with GitHub, so collaborators work and revoked access is enforced.
-- **Retention:** there is no temporary server-side analysis. Indexes are stored on this machine until you delete them, so the 60-minute retention rule for temporary cloud storage does not apply.
-- **Local network:** `next dev` also listens on your network address. On shared networks, run `next dev -H 127.0.0.1` so only this machine can reach the API.
-- **Scope:** full re-index per repository; incremental commit-based sync is not implemented.
+- **Faster re-indexing:** incremental re-indexing by commit SHA, plus GitHub webhooks.
+- **Retrieval evaluation:** a benchmark set with recall@k tracking.
+- **Precise call graphs:** symbol resolution via LSP/SCIP indexes.
+- **More sources:** GitLab and Bitbucket.
+- **Team deployments:** hosted indexing workers and a PostgreSQL server mode.
+- **Distribution:** publish the extension to the VS Code Marketplace.

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // (personal, organization and collaborator; public and private), with their Codebase AI index status.
 export async function GET(req: Request) {
   const auth = await getAuth(req);
-  if (!auth) return deny("auth_required");
+  if (!auth) return NextResponse.json({ error: "Continue with GitHub to see your repositories.", code: "auth_required" }, { status: 401 });
   const token = await getConnectionToken(auth.connectionId);
   if (!token) return deny("reauth_required");
 

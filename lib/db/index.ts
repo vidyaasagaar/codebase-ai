@@ -2,12 +2,13 @@ import path from "node:path";
 import fs from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { vector } from "@electric-sql/pglite-pgvector";
+import { dataDir } from "../data-dir";
 
 // PGlite = PostgreSQL compiled to WASM, with the pgvector extension.
 // Data persists in .data/pg. Swap for a pg Pool against a real Postgres by
 // reimplementing `query` — the rest of the app only uses this function.
 
-export const DATA_DIR = process.env.CODEBASE_AI_DATA_DIR ?? path.join(process.cwd(), ".data");
+export const DATA_DIR = dataDir();
 export const EMBEDDING_DIM = 384;
 
 const SCHEMA = `

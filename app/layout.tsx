@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   keywords: SITE_KEYWORDS,
   category: "Developer tools",
-  alternates: { canonical: "/" },
+  alternates: { canonical: "/", types: { "text/plain": "/llms.txt" } },
   openGraph: {
     type: "website",
     url: "/",

@@ -7,7 +7,7 @@ import remarkGfm from "remark-gfm";
 import { ArrowUp, Boxes, FileCode2, Loader2, AlertTriangle, X, RotateCcw } from "lucide-react";
 import { useRepo, type ChatMessage } from "@/components/repository/repo-shell";
 import { CodeViewer } from "@/components/code/code-viewer";
-import { lineRange, type CodeTarget, type Source } from "@/lib/client";
+import { errorMessageFor, lineRange, type CodeTarget, type Source } from "@/lib/client";
 
 export default function ChatPage() {
   return <Suspense><Chat /></Suspense>;
@@ -47,7 +47,7 @@ function Chat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, entityId: entity?.id, history }),
       });
-      if (!res.ok || !res.body) throw new Error((await res.json().catch(() => null))?.error ?? `Request failed (${res.status})`);
+      if (!res.ok || !res.body) throw new Error((await res.json().catch(() => null))?.error ?? errorMessageFor(res.status));
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";

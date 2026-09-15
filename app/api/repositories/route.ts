@@ -5,6 +5,7 @@ import { parseGithubUrl, getGithubRepo, GithubError, MAX_REPO_SIZE_KB } from "@/
 import { getAuth, getConnectionToken } from "@/lib/auth/session";
 import { deny } from "@/lib/auth/access";
 import { githubAuthConfig } from "@/lib/auth/github-oauth";
+import { capabilities } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,8 @@ export async function GET(req: Request) {
 
 // Body: { url, branch? } (Git URL, GitHub URL or absolute local path) or { github: "owner/repo", branch? }.
 export async function POST(req: Request) {
+  const { indexing, reason } = capabilities();
+  if (!indexing) return NextResponse.json({ error: reason, code: "indexing_unavailable" }, { status: 503 });
   const body = (await req.json().catch(() => ({}))) as { url?: string; branch?: string; github?: string };
   const url = body.url?.trim() || (body.github ? `https://github.com/${body.github.trim()}` : "");
   const branch = body.branch?.trim() || undefined;

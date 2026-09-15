@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { dataDir } from "../data-dir";
 
 // Encryption for secrets at rest (GitHub tokens). The key comes from CODEBASE_AI_SECRET, or is generated once
 // into <data dir>/secret.key (the data dir is gitignored). Nothing here ever logs secret material.
@@ -13,7 +14,7 @@ export function secretKey(): Buffer {
     cachedKey = crypto.createHash("sha256").update(process.env.CODEBASE_AI_SECRET).digest();
     return cachedKey;
   }
-  const dir = process.env.CODEBASE_AI_DATA_DIR ?? path.join(process.cwd(), ".data");
+  const dir = dataDir();
   const file = path.join(dir, "secret.key");
   fs.mkdirSync(dir, { recursive: true });
   try {

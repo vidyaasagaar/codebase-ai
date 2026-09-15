@@ -2,6 +2,7 @@
 
 > Codebase AI turns any Git repository into a searchable, structured model of the codebase and answers developer questions with exact source citations. It is available as a web application and a VS Code extension.
 
+Website: https://codebaseee.netlify.app
 Source code: https://github.com/vidyaasagaar/codebase-ai
 Documentation: https://github.com/vidyaasagaar/codebase-ai#readme
 Project analysis: https://github.com/vidyaasagaar/codebase-ai/blob/main/docs/PROJECT_ANALYSIS.md

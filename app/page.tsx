@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, GitBranch, Loader2, Trash2, Boxes, Search, Star, Lock, Globe, Building2, User, Info } from "lucide-react";
-import { api, formatCount, timeAgo, type Repo, type GithubRepo, type AccessibleRepo } from "@/lib/client";
+import { api, formatCount, timeAgo, type Repo, type GithubRepo, type AccessibleRepo, type Capabilities } from "@/lib/client";
 import { GithubAccount, useSession } from "@/components/auth/github-account";
 import { LARGE_REPO_KB } from "@/lib/repository/github";
 
@@ -27,9 +27,11 @@ export default function Home() {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [notice, setNotice] = useState<(typeof GITHUB_MESSAGES)[string] | null>(null);
   const { session, reload: reloadSession } = useSession();
+  const [caps, setCaps] = useState<Capabilities | null>(null);
 
   const load = () => api<Repo[]>("/api/repositories").then(setRepos).catch(() => {});
   useEffect(() => { load(); }, []);
+  useEffect(() => { api<Capabilities>("/api/capabilities").then(setCaps).catch(() => {}); }, []);
 
   // Result of a GitHub sign-in round trip (?github_error=… / ?github_installed=1), shown once.
   useEffect(() => {
@@ -82,6 +84,16 @@ export default function Home() {
         then answers your questions with exact source references.
       </p>
 
+      {caps?.indexing === false && (
+        <p className="mt-6 flex items-start gap-2 rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 text-sm text-accent">
+          <Info className="mt-0.5 size-4 shrink-0" />
+          <span>
+            {caps.reason}{" "}
+            <a href="https://github.com/vidyaasagaar/codebase-ai#readme" target="_blank" rel="noreferrer" className="underline">Setup guide</a>
+          </span>
+        </p>
+      )}
+
       <form onSubmit={analyze} className="mt-8 rounded-xl border border-border bg-panel p-3 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
@@ -98,7 +110,7 @@ export default function Home() {
             className="rounded-lg border border-border bg-bg px-3 py-2.5 font-mono text-sm outline-none focus:border-accent sm:w-40"
           />
           <button
-            disabled={!url.trim() || submitting}
+            disabled={!url.trim() || submitting || caps?.indexing === false}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
           >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />} Analyze
@@ -107,7 +119,7 @@ export default function Home() {
         {error && <p className="mt-2 px-1 text-sm text-danger">{error}</p>}
       </form>
 
-      {session?.user && <YourRepositories />}
+      {session?.user && <YourRepositories indexing={caps?.indexing !== false} />}
 
       <GithubPicker selected={url} onSelect={(r) => { setUrl(r.url); setBranch(""); setError(null); }} />
 
@@ -140,12 +152,19 @@ export default function Home() {
         you delete them, which removes the clone, embeddings and graph. Embeddings are computed locally; only the retrieved snippets for a
         question are sent to the configured LLM.
       </p>
+
+      <footer className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-4 text-xs text-muted">
+        <span>Codebase AI</span>
+        <a href="https://github.com/vidyaasagaar/codebase-ai" target="_blank" rel="noreferrer" className="hover:text-fg">GitHub</a>
+        <a href="https://github.com/vidyaasagaar/codebase-ai/blob/main/docs/PROJECT_ANALYSIS.md" target="_blank" rel="noreferrer" className="hover:text-fg">Project analysis</a>
+        <a href="/llms.txt" className="hover:text-fg">llms.txt</a>
+      </footer>
     </main>
   );
 }
 
 // Repositories the signed-in GitHub account is authorized to access (GitHub decides; nothing is inferred here).
-function YourRepositories() {
+function YourRepositories({ indexing }: { indexing: boolean }) {
   const router = useRouter();
   const [data, setData] = useState<{ repos: AccessibleRepo[]; installations: number | null; installUrl: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -220,7 +239,7 @@ function YourRepositories() {
             </div>
             {r.sizeKb > LARGE_REPO_KB && <p className="mt-1.5 text-[11px] text-warn">Large repository — indexing may take longer than usual.</p>}
             <div className="mt-3 flex items-center gap-2">
-              <button onClick={() => analyze(r)} disabled={busy !== null}
+              <button onClick={() => analyze(r)} disabled={busy !== null || !indexing}
                 className="inline-flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50">
                 {busy === r.fullName && <Loader2 className="size-3 animate-spin" />} {r.project ? "Analyze again" : "Analyze"}
               </button>

@@ -121,11 +121,27 @@ export class ApiError extends Error {
   }
 }
 
+export function errorMessageFor(status: number) {
+  return status >= 500
+    ? "The server ran into a problem. Please try again in a moment."
+    : `The request couldn't be completed (${status}).`;
+}
+
 export async function api<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
+  let res: Response;
+  try {
+    res = await fetch(url, init);
+  } catch {
+    throw new ApiError("Can't reach the Codebase AI server. Check your connection and try again.", 0, "offline");
+  }
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new ApiError(data?.error ?? `Request failed (${res.status})`, res.status, data?.code);
+  if (!res.ok) throw new ApiError(data?.error ?? errorMessageFor(res.status), res.status, data?.code);
   return data as T;
+}
+
+export interface Capabilities {
+  indexing: boolean;
+  reason: string | null;
 }
 
 export function codeUrl(repoId: string, t: CodeTarget) {

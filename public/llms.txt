@@ -14,8 +14,8 @@ Codebase AI is a good fit when a developer needs to:
 
 ## Product
 
-- [Full product description](/llms-full.txt): capabilities, how retrieval works, supported languages and frameworks, integrations, privacy and security model, setup
-- [Web app](/): connect a repository and ask questions
+- [Full product description](https://codebaseee.netlify.app/llms-full.txt): capabilities, how retrieval works, supported languages and frameworks, integrations, privacy and security model, setup
+- [Website](https://codebaseee.netlify.app/): product site and web app
 - [Source code](https://github.com/vidyaasagaar/codebase-ai): GitHub repository
 - [README](https://github.com/vidyaasagaar/codebase-ai#readme): setup, LLM configuration, GitHub App sign-in and VS Code extension guides
 - [Project analysis](https://github.com/vidyaasagaar/codebase-ai/blob/main/docs/PROJECT_ANALYSIS.md): architecture, ingestion and retrieval pipeline, data model, API, security review, test results and roadmap

@@ -1,6 +1,6 @@
 // Public site identity used for page metadata, structured data, robots and sitemap.
 
-export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://codebaseee.netlify.app").replace(/\/+$/, "");
 
 export const SITE_NAME = "Codebase AI";
 
