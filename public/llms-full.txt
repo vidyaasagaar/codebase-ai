@@ -1,0 +1,100 @@
+# Codebase AI — Full Product Description
+
+> Codebase AI turns any Git repository into a searchable, structured model of the codebase and answers developer questions with exact source citations. It is available as a web application and a VS Code extension.
+
+Source code: https://github.com/vidyaasagaar/codebase-ai
+Documentation: https://github.com/vidyaasagaar/codebase-ai#readme
+Project analysis: https://github.com/vidyaasagaar/codebase-ai/blob/main/docs/PROJECT_ANALYSIS.md
+
+## What problem it solves
+
+Joining or changing an unfamiliar codebase is slow because the important knowledge is spread across thousands of files, routes, configuration files and implicit call chains. Keyword search requires already knowing the project's vocabulary. Codebase AI lets developers ask in plain language and receive answers grounded in the actual repository, with every important claim linked to the function, file and line range that supports it.
+
+Typical questions:
+
+- Where is authentication handled?
+- How does a user registration request flow through the system?
+- Which service creates JWT tokens?
+- Where are database connections created?
+- Show me all API routes.
+- Explain the architecture of this codebase.
+- What would be affected if I changed UserService?
+- What should I understand first as a new developer?
+
+## Who uses it
+
+Developers onboarding onto a project, tech leads planning changes, code reviewers, open-source maintainers, consultants auditing client codebases, and students learning large projects.
+
+## How it works
+
+1. Connect a repository: a local folder, a public Git URL, or a public/private/organization GitHub repository selected after signing in with GitHub.
+2. Analysis: the repository is cloned (shallow) or read in place; source files are discovered while vendored code, build output, lockfiles and minified files are skipped.
+3. Parsing: Tree-sitter extracts functions, methods, classes, interfaces, types, enums, React components, data models, API routes, imports and call sites for TypeScript, TSX, JavaScript, Python, Java and Go. Other files (docs, configuration, other languages) are indexed as searchable text.
+4. Dependency graph: imports are resolved per language (relative and alias paths, Python modules, Java packages, Go packages) and calls are resolved to entities, including route-to-handler links.
+5. Embeddings: every code entity is embedded locally with bge-small-en-v1.5 and stored with a weighted full-text index in PostgreSQL + pgvector.
+6. Question answering: the question is classified; retrieval fuses vector similarity, full-text search and exact symbol matching; top results are expanded with callers and callees; numbered evidence is sent to the configured LLM with instructions to cite sources and admit missing evidence; the answer streams back and file paths or citations that do not exist are flagged.
+
+## Features
+
+### Web dashboard
+- Live analysis progress (files discovered, functions/classes/routes extracted, dependency graph, embeddings)
+- Overview: languages, frameworks, entry points, largest and most-connected modules, potentially complex files, suggested questions, visibility (private/public/local), last indexed, re-index, open in VS Code
+- Ask AI: streaming grounded answers, clickable citations, side-by-side code viewer, evidence strength, follow-up questions about a selected symbol
+- Architecture: interactive module and file graphs from imports and calls, with dependency/dependent highlighting and search
+- Files: file tree, syntax-highlighted viewer with highlighted line ranges, symbol outline, go-to-symbol, dependency explorer
+- API Routes: every detected endpoint with method, path and source
+- Dependencies & Impact: HIGH/MEDIUM/LOW impact of changing a function or class, with reasons and importing files
+
+### VS Code extension
+- Codebase AI: Ask About This Codebase — chat panel whose citations open files at the cited lines
+- Codebase AI: Analyze Repository — analyze the open folder locally (includes uncommitted changes, no account needed) or its GitHub copy
+- Codebase AI: Select Repository, Re-index Repository, Open Dashboard
+- Codebase AI: Sign In / Sign Out / Connect GitHub — browser-based sign-in; the extension stores only its own session token in VS Code SecretStorage
+- Automatic recognition of the workspace's GitHub remote (SSH and HTTPS forms)
+- "Open in VS Code" from the web dashboard links the matching workspace or offers to clone it
+
+### Supported API frameworks for route detection
+Express, Koa, Fastify, Hono, Next.js (App Router and Pages API routes), FastAPI (including APIRouter prefixes), Flask (including Blueprint prefixes), Spring (@GetMapping, @PostMapping, @RequestMapping), NestJS (@Get, @Post, @Controller), Go net/http, Gin, Echo, Chi and Fiber.
+
+## GitHub integration
+
+- Sign in with GitHub to list every repository the account is authorized to access: personal, organization and collaborator repositories, public and private.
+- Uses a GitHub App with read-only permissions (repository contents and metadata). Codebase AI cannot push code, delete repositories or change settings.
+- GitHub remains the source of truth for access: opening an indexed private repository re-checks access with GitHub, so collaborators work and revoked access is enforced.
+- Private repositories are cloned with a one-time credential passed through git's environment configuration; the token is never written to the clone URL, git configuration or process arguments.
+
+## Privacy and security
+
+- Parsing, embeddings and the vector index run on the machine that hosts Codebase AI; only the snippets retrieved for a question are sent to the configured LLM provider.
+- Any OpenAI-compatible LLM provider can be used (for example OpenRouter, OpenAI, Gemini, Groq or a local model server).
+- GitHub tokens are encrypted at rest with AES-256-GCM and never sent to the browser or the VS Code extension; sessions are stored only as SHA-256 hashes.
+- Repositories and their indexes are kept until the user deletes them; deletion removes the clone, entities, embeddings and dependency graph.
+
+## Setup
+
+1. Install dependencies and start the web app (Node.js 20+, git).
+2. Configure an OpenAI-compatible LLM endpoint (base URL, API key, model).
+3. Optionally configure a GitHub App (client ID, client secret, callback URL, app slug) to enable private and organization repositories.
+4. Open the web app, paste a repository or continue with GitHub, and ask questions.
+5. For VS Code, build the extension in the `extension` folder and run it, then use "Codebase AI: Analyze Repository" or "Codebase AI: Sign In".
+
+## Technology
+
+Next.js 16, React 19, TypeScript, Tailwind CSS, PGlite (PostgreSQL compiled to WebAssembly) with pgvector, web-tree-sitter with WebAssembly grammars, transformers.js running bge-small-en-v1.5, React Flow with Dagre layout, Monaco Editor, and the VS Code extension API.
+
+## Frequently asked questions
+
+**Does Codebase AI send my whole repository to an AI model?**
+No. The repository is parsed and embedded locally; only the most relevant retrieved snippets for a question are sent to the configured LLM.
+
+**Can it analyze private repositories?**
+Yes. Sign in with GitHub and select any repository the account is authorized to access, including organization repositories. Access is read-only and verified with GitHub.
+
+**Do I need a GitHub account?**
+No. Local folders and public Git URLs work without signing in, including in VS Code.
+
+**How does it avoid hallucinated answers?**
+Answers must cite numbered evidence retrieved from the repository, must state when evidence is insufficient, and are automatically checked for file paths or citations that do not exist in the repository.
+
+**Which languages are supported?**
+TypeScript, TSX, JavaScript, Python, Java and Go are parsed into code entities with Tree-sitter; other files are indexed as searchable text.

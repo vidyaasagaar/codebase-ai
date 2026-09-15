@@ -5,6 +5,10 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    // Data fetching in effects (reset state, then load) is intentional in this app.
+    rules: { "react-hooks/set-state-in-effect": "off" },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -12,6 +16,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // VS Code extension is a separate package with its own tsconfig/build.
+    "extension/**",
   ]),
 ]);
 

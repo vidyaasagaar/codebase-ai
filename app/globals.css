@@ -1,26 +1,88 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  color-scheme: light;
+  --bg: #f7f7f8;
+  --panel: #ffffff;
+  --panel-2: #f1f1f3;
+  --border: #e3e3e8;
+  --text: #17171c;
+  --muted: #6b6b76;
+  --accent: #4f46e5;
+  --accent-soft: #eef0ff;
+  --ok: #15803d;
+  --warn: #b45309;
+  --danger: #dc2626;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: dark;
+    --bg: #0b0b0e;
+    --panel: #111115;
+    --panel-2: #18181d;
+    --border: #26262d;
+    --text: #ececf1;
+    --muted: #9a9aa6;
+    --accent: #8b93ff;
+    --accent-soft: rgba(139, 147, 255, 0.12);
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --danger: #f87171;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-border: var(--border);
+  --color-fg: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* AI answer typography */
+.answer { font-size: 14px; line-height: 1.65; }
+.answer > * + * { margin-top: 0.6em; }
+.answer h1, .answer h2, .answer h3 { font-weight: 600; font-size: 14px; margin-top: 1.1em; }
+.answer strong { font-weight: 600; }
+.answer ul { list-style: disc; padding-left: 1.25em; }
+.answer ol { list-style: decimal; padding-left: 1.25em; }
+.answer li + li { margin-top: 0.25em; }
+.answer code { font-family: var(--font-mono); font-size: 12.5px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+.answer pre { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+.answer pre code { background: none; border: 0; padding: 0; }
+.answer table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: 13px; }
+.answer th, .answer td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
+
+.react-flow__attribution { display: none; }
+
+/* React Flow follows the app theme tokens (light + dark) */
+.react-flow {
+  --xy-background-color: var(--bg);
+  --xy-edge-stroke: var(--border);
+  --xy-controls-button-background-color: var(--panel);
+  --xy-controls-button-background-color-hover: var(--panel-2);
+  --xy-controls-button-color: var(--text);
+  --xy-controls-button-color-hover: var(--text);
+  --xy-controls-button-border-color: var(--border);
+  --xy-controls-box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+}
+.react-flow__controls { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.react-flow__controls-button svg { fill: currentColor; }
+
+/* Monaco: lines referenced by the AI */
+.code-highlight { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.code-highlight-gutter { border-left: 3px solid var(--accent); margin-left: 3px; }

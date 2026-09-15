@@ -1,0 +1,43 @@
+# Codebase AI
+
+> Codebase AI is an AI code intelligence assistant for Git repositories. It parses a repository with Tree-sitter into functions, classes, API routes and a dependency graph, indexes it with local embeddings in PostgreSQL + pgvector, and answers natural-language questions about architecture, request flows, dependencies and change impact with exact file and line citations. It works with local folders, public Git URLs and private or organization GitHub repositories (read-only GitHub App access), from a web dashboard or a VS Code extension.
+
+Codebase AI is a good fit when a developer needs to:
+
+- Understand an unfamiliar codebase quickly ("Where is authentication handled?", "How does login work?", "Explain the architecture")
+- Find the exact functions, files and line ranges behind a behavior, with evidence rather than guesses
+- Assess the blast radius of a change ("What would be affected if I changed createUser?")
+- List every HTTP endpoint across frameworks
+- Explore module and file dependencies visually
+- Ask questions about private repositories without uploading the codebase to a third party (parsing, embeddings and the vector index run locally; only retrieved snippets are sent to the configured LLM)
+- Use the same codebase knowledge inside VS Code, including uncommitted local work
+
+## Product
+
+- [Full product description](/llms-full.txt): capabilities, how retrieval works, supported languages and frameworks, integrations, privacy and security model, setup
+- [Web app](/): connect a repository and ask questions
+- [Source code](https://github.com/vidyaasagaar/codebase-ai): GitHub repository
+- [README](https://github.com/vidyaasagaar/codebase-ai#readme): setup, LLM configuration, GitHub App sign-in and VS Code extension guides
+- [Project analysis](https://github.com/vidyaasagaar/codebase-ai/blob/main/docs/PROJECT_ANALYSIS.md): architecture, ingestion and retrieval pipeline, data model, API, security review, test results and roadmap
+
+## Capabilities
+
+- Grounded Q&A: streaming answers where every claim cites numbered sources that open the code at the cited lines; answers state when evidence is insufficient, and fabricated file paths are flagged automatically
+- Hybrid retrieval: vector similarity, PostgreSQL full-text search over split identifiers and exact symbol matching, fused with Reciprocal Rank Fusion and expanded through the call graph
+- Query understanding: location, flow, dependency, impact, implementation, debugging, architecture and route questions each get tailored context
+- Structural analysis: interactive architecture graph, dependency explorer, and HIGH/MEDIUM/LOW change impact with reasons
+- API routes: Express, Koa, Fastify, Hono, Next.js route handlers, FastAPI, Flask, Spring, NestJS, Go net/http, Gin, Echo, Chi and Fiber
+- Languages parsed with Tree-sitter: TypeScript, TSX, JavaScript, Python, Java, Go (other files are indexed as searchable text)
+- Sources: local folders (no account needed), public Git URLs, GitHub public/private/organization repositories
+- VS Code extension: ask about the codebase, analyze the local workspace, select and re-index projects, open web projects in VS Code, automatic recognition of GitHub remotes
+
+## Security and privacy
+
+- Read-only GitHub permissions (repository contents and metadata only)
+- GitHub tokens encrypted at rest and never sent to the browser or the VS Code extension
+- Access to private repository indexes is re-verified with GitHub, so revoked access is enforced
+- Local parsing, local embeddings and a local vector database; any OpenAI-compatible LLM provider can be configured
+
+## Optional
+
+- Technology: Next.js, React, TypeScript, PGlite (PostgreSQL + pgvector), web-tree-sitter, transformers.js (bge-small-en-v1.5), React Flow, Monaco Editor, VS Code extension API

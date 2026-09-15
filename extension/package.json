@@ -1,0 +1,50 @@
+{
+  "name": "codebase-ai",
+  "displayName": "Codebase AI",
+  "description": "Ask architecture and implementation questions about your workspace or GitHub-linked Codebase AI projects, with exact source references.",
+  "publisher": "codebase-ai",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onUri"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "codebaseAI.ask", "title": "Ask About This Codebase", "category": "Codebase AI" },
+      { "command": "codebaseAI.signIn", "title": "Sign In", "category": "Codebase AI" },
+      { "command": "codebaseAI.signOut", "title": "Sign Out", "category": "Codebase AI" },
+      { "command": "codebaseAI.connectGitHub", "title": "Connect GitHub", "category": "Codebase AI" },
+      { "command": "codebaseAI.selectRepository", "title": "Select Repository", "category": "Codebase AI" },
+      { "command": "codebaseAI.analyzeRepository", "title": "Analyze Repository", "category": "Codebase AI" },
+      { "command": "codebaseAI.reindexRepository", "title": "Re-index Repository", "category": "Codebase AI" },
+      { "command": "codebaseAI.openDashboard", "title": "Open Dashboard", "category": "Codebase AI" }
+    ],
+    "configuration": {
+      "title": "Codebase AI",
+      "properties": {
+        "codebaseAI.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "URL of your Codebase AI server. The extension only ever sends its session token to this URL."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5"
+  }
+}
